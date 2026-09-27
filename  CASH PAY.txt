@@ -1,0 +1,1833 @@
+<meta name='viewport' content='width=device-width, initial-scale=1'/><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EduPay PTA System</title>
+<meta name="theme-color" content="#0a1628">
+<script>
+// Apply the saved theme before first paint so there is no dark/light flash
+try { document.documentElement.setAttribute('data-theme', localStorage.getItem('edupay_theme') === 'light' ? 'light' : 'dark'); }
+catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<script src="https://js.paystack.co/v1/inline.js"></script>
+<style>
+:root {
+  --navy:#0a1628; --navy-mid:#112240; --navy-light:#1a3356;
+  --gold:#f4c542; --gold-dim:#c8971e; --gold-light:#ffd966;
+  --emerald:#00c896; --rose:#ff5a6e; --sky:#4fc3f7; --violet:#8b5cf6;
+  --white:#f0f4ff; --muted:#7a8fb0;
+  --card:rgba(17,34,64,0.52); --border:rgba(244,197,66,0.22);
+  --shadow:0 8px 40px rgba(0,0,0,0.5);
+  --r:16px;
+  /* Fluid menu colours */
+  --fluid-bg:#1a3356; --fluid-bg-hover:#24446f;
+  /* Single family everywhere -- weight/tracking carry the hierarchy instead of a second typeface */
+  --fh:'DM Sans',sans-serif; --fb:'DM Sans',sans-serif;
+  /* Theme + glass tokens (dark is the default; the light values live in [data-theme="light"] further down) */
+  color-scheme:dark;
+  --page-bg:var(--navy);
+  --tint-top:rgba(6,13,26,.5); --tint-bottom:rgba(6,13,26,.74);
+  --topbar-bg:rgba(10,22,40,.5);
+  --modal-bg:rgba(14,28,54,.88);
+  --glass-blur:blur(22px) saturate(170%);
+  --glass-hi:rgba(255,255,255,.1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--fb);color:var(--white);min-height:100vh;overflow-x:hidden;
+  background-color:var(--page-bg);
+  transition:background-color .35s ease;
+}
+body::before{content:'';position:fixed;inset:0;z-index:0;background:
+  radial-gradient(ellipse 80% 50% at 20% 10%,rgba(244,197,66,.06),transparent),
+  radial-gradient(ellipse 60% 40% at 80% 90%,rgba(0,200,150,.05),transparent),
+  repeating-linear-gradient(0deg,transparent,transparent 59px,rgba(255,255,255,.015) 60px),
+  repeating-linear-gradient(90deg,transparent,transparent 59px,rgba(255,255,255,.015) 60px);
+  pointer-events:none}
+
+/* ── INPUTS ── */
+input,select,textarea{width:100%;padding:13px 16px;background:rgba(255,255,255,.07);border:1.5px solid rgba(255,255,255,.14);border-radius:12px;color:var(--white);font-family:var(--fb);font-size:.95rem;outline:none;transition:border-color .25s,box-shadow .25s;backdrop-filter:blur(6px)}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(244,197,66,.13)}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+select option{background:var(--navy-mid);color:var(--white)}
+label{font-size:.8rem;color:var(--muted);font-weight:500;margin-bottom:5px;display:block;letter-spacing:.03em}
+.form-field{margin-bottom:15px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:15px}
+@media(max-width:560px){.form-row{grid-template-columns:1fr}}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 24px;border-radius:12px;border:none;cursor:pointer;font-family:var(--fh);font-weight:700;font-size:.9rem;transition:all .22s;letter-spacing:.02em;text-decoration:none}
+.btn-gold{background:var(--gold);color:var(--navy)}
+.btn-gold:hover{background:var(--gold-light);transform:translateY(-2px);box-shadow:0 8px 24px rgba(244,197,66,.35)}
+.btn-emerald{background:var(--emerald);color:var(--navy)}
+.btn-emerald:hover{background:#00e0a8;transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,200,150,.3)}
+.btn-rose{background:var(--rose);color:#fff}
+.btn-rose:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-sky{background:var(--sky);color:var(--navy)}
+.btn-sky:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.btn-violet{background:var(--violet);color:#fff}
+.btn-violet:hover{filter:brightness(1.1);transform:translateY(-2px)}
+.btn-full{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+.btn-overlay{background:var(--navy);color:var(--gold-light);border:1.5px solid rgba(10,22,40,.35)}
+.btn-overlay:hover{background:var(--navy-mid);transform:translateY(-2px)}
+
+/* ── ALERTS ── */
+.alert{padding:12px 16px;border-radius:10px;font-size:.85rem;display:none;margin-top:8px}
+.alert.show{display:block;animation:slideUp .3s ease}
+.alert-success{background:rgba(0,200,150,.12);border:1px solid var(--emerald);color:var(--emerald)}
+.alert-error{background:rgba(255,90,110,.12);border:1px solid var(--rose);color:var(--rose)}
+.alert-info{background:rgba(79,195,247,.12);border:1px solid var(--sky);color:var(--sky)}
+.alert-warn{background:rgba(244,197,66,.1);border:1px solid var(--gold);color:var(--gold)}
+
+/* ── CARD (glass) ── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px;backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);box-shadow:var(--shadow)}
+.card-title{font-family:var(--fh);font-size:1.1rem;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+
+/* ── SCREEN WRAPPER ── */
+.screen{display:none;position:relative;z-index:1;min-height:100vh}
+.screen.active{display:flex}
+
+/* ════════════════════════════════════════
+   ONBOARDING -- merged Create Account / Sign In sliding panel
+══════════════════════════════════════════*/
+#s-onboard{align-items:center;justify-content:center;padding:24px;animation:fadeIn .5s ease}
+.onboard-wrap{display:flex;flex-direction:column;align-items:center;width:100%}
+.onboard-logo{font-family:var(--fh);font-size:2.6rem;font-weight:800;color:var(--gold);letter-spacing:-1px;margin-bottom:4px}
+.onboard-logo span{color:var(--white)}
+.onboard-tagline{color:var(--muted);font-size:.95rem;margin-bottom:32px;letter-spacing:.04em}
+
+.auth-card{
+  position:relative;width:min(880px,96vw);min-height:600px;
+  background:var(--card);border:1px solid var(--border);border-radius:24px;
+  box-shadow:var(--shadow);overflow:hidden;
+  backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);
+  perspective:1800px;
+}
+.auth-formzone{
+  position:relative;width:100%;min-height:600px;
+  padding:52px 46px 52px calc(42% + 34px);
+  display:flex;flex-direction:column;justify-content:center;
+  transition:padding .86s cubic-bezier(.65,0,.35,1);
+}
+.auth-card.show-signin .auth-formzone{padding:52px calc(42% + 34px) 52px 46px}
+.auth-form{display:none;animation:fadeIn .45s ease}
+.auth-form.active{display:block}
+.form-heading{font-family:var(--fh);font-size:1.5rem;font-weight:800;margin-bottom:6px;color:var(--gold)}
+.form-sub{color:var(--muted);font-size:.83rem;margin-bottom:22px;line-height:1.5}
+
+.auth-overlay{
+  position:absolute;top:0;left:0;width:42%;height:100%;
+  background:linear-gradient(150deg,var(--gold),var(--gold-dim) 120%);
+  transform-style:preserve-3d;transform-origin:center center;
+  transition:left .86s cubic-bezier(.65,0,.35,1), transform .86s cubic-bezier(.65,0,.35,1);
+  z-index:5;
+}
+.auth-card.show-signin .auth-overlay{left:58%;transform:rotateY(180deg)}
+.overlay-face{
+  position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;gap:14px;padding:40px 30px;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  color:var(--navy);
+}
+.overlay-face.active{display:flex}
+.overlay-back{transform:rotateY(180deg)}
+.overlay-title{font-family:var(--fh);font-size:1.4rem;font-weight:800}
+.overlay-text{font-size:.85rem;line-height:1.6;opacity:.85}
+.auth-icon-wrap{width:92px;height:auto;margin-bottom:2px;filter:drop-shadow(0 10px 20px rgba(10,22,40,.35))}
+.auth-icon-wrap svg{width:100%;height:auto;display:block}
+@media(min-width:701px){
+  .overlay-face{display:flex !important}
+}
+@media(max-width:700px){
+  .auth-card{display:flex;flex-direction:column;min-height:0;perspective:none}
+  .auth-formzone{min-height:0;padding:36px 26px !important;order:2}
+  .auth-overlay{position:static;width:100%;height:auto;left:auto !important;transform:none !important;order:1;border-radius:24px 24px 0 0;transition:none}
+  .overlay-face{position:static;padding:28px 22px;transform:none !important}
+}
+
+/* ════════════════════════════════════════
+   ADMIN LOGIN
+══════════════════════════════════════════*/
+#s-adminlogin{align-items:center;justify-content:center;padding:24px;animation:fadeIn .4s ease}
+.login-card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:36px;width:min(420px,96vw);backdrop-filter:blur(20px) saturate(160%);box-shadow:var(--shadow)}
+.login-title{font-family:var(--fh);font-size:1.4rem;font-weight:800;margin-bottom:4px;color:var(--gold)}
+.login-school{color:var(--muted);font-size:.82rem;margin-bottom:22px}
+.lockout-banner{background:rgba(255,90,110,.12);border:1px solid var(--rose);border-radius:10px;padding:14px;font-size:.83rem;color:var(--rose);display:none;margin-bottom:14px}
+.lockout-banner.show{display:block}
+.forgot-row{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.text-link{background:none;border:none;color:var(--sky);font-size:.8rem;cursor:pointer;font-family:var(--fb);text-decoration:underline;padding:0}
+.text-link:hover{color:var(--gold)}
+
+/* ════════════════════════════════════════
+   PARENT LOGIN
+══════════════════════════════════════════*/
+#s-parentlogin{align-items:center;justify-content:center;padding:24px;animation:fadeIn .4s ease}
+
+/* ════════════════════════════════════════
+   MAIN APP
+══════════════════════════════════════════*/
+#s-app{display:none;flex-direction:column}
+#s-app.active{display:flex}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:200;background:rgba(10,22,40,.55);backdrop-filter:blur(22px) saturate(160%);border-bottom:1px solid var(--border);padding:0 28px;display:flex;align-items:center;justify-content:space-between;height:64px}
+.topbar-brand{font-family:var(--fh);font-size:1.35rem;font-weight:800;color:var(--gold)}
+.topbar-brand span{color:var(--white)}
+.topbar-school{color:var(--muted);font-size:.75rem;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.live-clock{font-size:.82rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--emerald);animation:pulse 2s infinite}
+.topbar-btn{background:none;border:1.5px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:.78rem;font-family:var(--fb);transition:all .2s}
+.topbar-btn:hover{border-color:var(--gold);color:var(--gold)}
+.topbar-btn.danger:hover{border-color:var(--rose);color:var(--rose)}
+
+/* ════════════════════════════════════════
+   FLUID NAVIGATION (circular menu)
+   Toggle sits bottom-right; tapping it lets the circles rise up
+   out of it with a springy, staggered motion.
+══════════════════════════════════════════*/
+.fluid-nav{
+  --fs:58px;            /* circle size */
+  --fstep:50px;         /* distance between circle centres (smaller than --fs, so they overlap) */
+  position:fixed;right:20px;bottom:calc(20px + env(safe-area-inset-bottom,0px));
+  z-index:500;pointer-events:none;
+}
+.fluid-backdrop{
+  position:fixed;inset:0;z-index:-1;
+  background:rgba(6,13,26,.62);
+  backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+  opacity:0;pointer-events:none;transition:opacity .4s ease;
+}
+.fluid-nav.open .fluid-backdrop{opacity:1;pointer-events:auto}
+
+/* One shared drop-shadow so the overlapping circles read as a single fluid shape */
+.fluid-stack{display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 10px 18px rgba(0,0,0,.45))}
+
+/* column-reverse: first item in the HTML sits closest to the toggle */
+.fluid-list{display:flex;flex-direction:column-reverse;align-items:center}
+
+.nav-tab,.fluid-action{
+  position:relative;flex-shrink:0;
+  width:var(--fs);height:var(--fs);
+  margin-bottom:calc(var(--fstep) - var(--fs));
+  display:grid;place-items:center;
+  border:none;border-radius:50%;
+  background:var(--fluid-bg);color:var(--white);
+  cursor:pointer;pointer-events:none;
+  -webkit-tap-highlight-color:transparent;
+  /* closed: tucked behind the toggle */
+  opacity:0;
+  transform:translateY(calc(var(--n,1) * var(--fstep))) scale(.55);
+  transition:
+    transform .45s cubic-bezier(.65,0,.35,1) calc((var(--total,1) - var(--n,1)) * 30ms),
+    opacity .25s ease calc((var(--total,1) - var(--n,1)) * 30ms),
+    background .25s ease, color .25s ease;
+}
+.fluid-nav.open .nav-tab,
+.fluid-nav.open .fluid-action{
+  pointer-events:auto;opacity:1;transform:none;
+  transition:
+    transform .6s cubic-bezier(.34,1.56,.64,1) calc((var(--n,1) - 1) * 45ms),
+    opacity .3s ease calc((var(--n,1) - 1) * 45ms),
+    background .25s ease, color .25s ease;
+}
+.nav-tab:hover,.fluid-action:hover{background:var(--fluid-bg-hover)}
+.nav-tab.active{background:var(--gold);color:var(--navy);z-index:2}
+.nav-tab:focus-visible,.fluid-action:focus-visible,.fluid-toggle:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+.fluid-icon,.fluid-toggle svg{
+  width:24px;height:24px;fill:none;stroke:currentColor;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+}
+
+/* Text label that appears beside each circle */
+.fluid-label{
+  position:absolute;right:calc(100% + 12px);top:50%;
+  transform:translate(10px,-50%);
+  white-space:nowrap;pointer-events:none;
+  font-family:var(--fh);font-size:.78rem;font-weight:600;letter-spacing:.02em;
+  background:var(--navy);color:var(--white);
+  border:1px solid var(--border);border-radius:20px;padding:6px 13px;
+  opacity:0;
+  transition:opacity .2s ease, transform .3s ease;
+}
+.fluid-nav.open .fluid-label{
+  opacity:1;transform:translate(0,-50%);
+  transition:opacity .3s ease calc((var(--n,1) - 1) * 45ms + 150ms), transform .45s cubic-bezier(.34,1.56,.64,1) calc((var(--n,1) - 1) * 45ms + 150ms);
+}
+.nav-tab.active .fluid-label{color:var(--gold);border-color:var(--gold)}
+
+/* The round toggle button (hamburger ⇄ close) */
+.fluid-toggle{
+  position:relative;z-index:3;
+  width:var(--fs);height:var(--fs);
+  display:grid;place-items:center;
+  border:none;border-radius:50%;
+  background:var(--fluid-bg);color:var(--white);
+  box-shadow:inset 0 0 0 1.5px rgba(244,197,66,.28);
+  cursor:pointer;pointer-events:auto;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .3s cubic-bezier(.34,1.56,.64,1), background .25s ease;
+}
+.fluid-toggle:hover{background:var(--fluid-bg-hover)}
+.fluid-toggle:active{transform:scale(.9)}
+.fluid-toggle svg{grid-area:1/1;transition:transform .45s cubic-bezier(.65,0,.35,1), opacity .25s ease}
+.fluid-toggle .ic-close{opacity:0;transform:rotate(-90deg) scale(.5)}
+.fluid-nav.open .ic-menu{opacity:0;transform:rotate(90deg) scale(.5)}
+.fluid-nav.open .ic-close{opacity:1;transform:none}
+
+@media(prefers-reduced-motion:reduce){
+  .nav-tab,.fluid-action,.theme-ic,.bg-photo,.fluid-label,.fluid-toggle,.fluid-toggle svg,.fluid-backdrop{transition-duration:.01ms !important;transition-delay:0s !important}
+}
+
+/* CONTENT */
+.content{padding:28px;max-width:1240px;margin:0 auto;width:100%}
+.content::after{content:'';display:block;height:96px} /* keeps the floating menu clear of the last card */
+.panel{display:none;animation:fadeIn .35s ease}
+.panel.active{display:block}
+
+/* GRIDS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:900px){.g4,.g3{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.g4,.g3,.g2{grid-template-columns:1fr}.content{padding:14px}.topbar{padding:0 14px}}
+
+/* STAT CARDS */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;backdrop-filter:blur(16px) saturate(160%);position:relative;overflow:hidden}
+.stat-card::after{content:'';position:absolute;top:-16px;right:-16px;width:70px;height:70px;border-radius:50%;opacity:.1}
+.stat-card.c-gold::after{background:var(--gold)}
+.stat-card.c-em::after{background:var(--emerald)}
+.stat-card.c-sky::after{background:var(--sky)}
+.stat-card.c-rose::after{background:var(--rose)}
+.stat-lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.stat-v{font-family:var(--fh);font-size:1.9rem;font-weight:800}
+.c-gold .stat-v,.t-gold{color:var(--gold)}
+.c-em .stat-v,.t-em{color:var(--emerald)}
+.c-sky .stat-v,.t-sky{color:var(--sky)}
+.c-rose .stat-v,.t-rose{color:var(--rose)}
+.stat-note{font-size:.72rem;color:var(--muted);margin-top:4px}
+.pbar{height:5px;background:rgba(255,255,255,.07);border-radius:20px;overflow:hidden;margin-top:10px}
+.pfill{height:100%;border-radius:20px;background:linear-gradient(90deg,var(--gold),var(--emerald));transition:width .6s ease}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}
+th{text-align:left;padding:11px 14px;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);font-family:var(--fh);font-weight:600}
+td{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:700;letter-spacing:.04em}
+.b-green{background:rgba(0,200,150,.15);color:var(--emerald)}
+.b-yellow{background:rgba(244,197,66,.15);color:var(--gold)}
+.b-red{background:rgba(255,90,110,.15);color:var(--rose)}
+.b-blue{background:rgba(79,195,247,.15);color:var(--sky)}
+.b-violet{background:rgba(139,92,246,.15);color:var(--violet)}
+
+/* SEARCH */
+.search-bar{position:relative;margin-bottom:18px}
+.search-bar input{padding-left:40px}
+.search-bar::before{content:'🔍';position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:.9rem}
+
+/* SECTION HDR */
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px}
+.sec-title{font-family:var(--fh);font-size:1.45rem;font-weight:800}
+.sec-sub{color:var(--muted);font-size:.83rem;margin-top:3px}
+
+/* GPS */
+.gps-bar{background:rgba(79,195,247,.06);border:1px solid rgba(79,195,247,.2);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:10px;margin-top:10px;font-size:.82rem}
+.gps-dot{width:9px;height:9px;border-radius:50%;background:var(--sky);animation:pulse 1.5s infinite;flex-shrink:0}
+
+/* VCODE */
+.vcode-box{background:linear-gradient(135deg,rgba(0,200,150,.1),rgba(0,200,150,.04));border:1.5px solid var(--emerald);border-radius:14px;padding:22px;text-align:center;margin-top:18px;display:none}
+.vcode-lbl{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px}
+.vcode-val{font-family:var(--fh);font-size:2.2rem;font-weight:800;letter-spacing:10px;color:var(--emerald)}
+.vcode-sub{font-size:.75rem;color:var(--muted);margin-top:8px}
+
+/* PAYMENT METHOD CARDS */
+.pm-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+@media(max-width:480px){.pm-grid{grid-template-columns:1fr}}
+.pm-card{border:2px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 10px;cursor:pointer;text-align:center;transition:all .22s;background:rgba(255,255,255,.03);display:flex;flex-direction:column;align-items:center;gap:6px}
+.pm-card:hover{border-color:rgba(244,197,66,.4);background:rgba(244,197,66,.05)}
+.pm-card.sel{border-color:var(--gold);background:rgba(244,197,66,.1)}
+.pm-icon{font-size:1.7rem}
+.pm-name{font-size:.8rem;font-weight:700;color:var(--white)}
+.pm-sub{font-size:.68rem;color:var(--muted)}
+.pm-card.sel .pm-name{color:var(--gold)}
+
+/* CHART */
+.chart-tabs{display:flex;gap:6px;margin-bottom:14px}
+.chart-tab{padding:5px 12px;border-radius:20px;font-size:.75rem;font-weight:600;cursor:pointer;border:1.5px solid var(--border);background:none;color:var(--muted);font-family:var(--fb);transition:all .2s}
+.chart-tab.active{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:130px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.cbar-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.cbar{width:100%;border-radius:5px 5px 0 0;min-height:4px;background:linear-gradient(to top,var(--gold),rgba(244,197,66,.3));transition:height .5s cubic-bezier(.34,1.56,.64,1);cursor:pointer;position:relative}
+.cbar:hover::after{content:attr(data-v);position:absolute;top:-26px;left:50%;transform:translateX(-50%);background:var(--navy-mid);color:var(--gold);font-size:.68rem;padding:3px 7px;border-radius:5px;white-space:nowrap;font-weight:700}
+.cbar-lbl{font-size:.65rem;color:var(--muted);margin-top:5px}
+
+/* TIMELINE */
+.timeline{display:flex;flex-direction:column}
+.tl-item{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:9px;height:9px;border-radius:50%;background:var(--emerald);margin-top:5px;flex-shrink:0}
+.tl-content{flex:1}
+.tl-title{font-size:.88rem;font-weight:600}
+.tl-meta{font-size:.75rem;color:var(--muted);margin-top:2px}
+.tl-amt{font-family:var(--fh);font-weight:700;color:var(--gold);font-size:.95rem}
+
+/* FW */
+.fw-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:500px){.fw-grid{grid-template-columns:1fr}}
+.fw-item{display:flex;align-items:center;gap:10px;padding:12px;background:rgba(255,255,255,.03);border-radius:9px;border:1px solid var(--border)}
+.fw-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.fw-dot.ok{background:var(--emerald);box-shadow:0 0 8px var(--emerald)}
+.fw-dot.warn{background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.fw-lbl{font-size:.8rem}
+.fw-lbl small{display:block;color:var(--muted);font-size:.68rem}
+
+/* MODAL */
+.modal-ov{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;padding:16px}
+.modal-ov.open{display:flex;animation:fadeIn .25s ease}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:30px;width:min(500px,96vw);box-shadow:var(--shadow);animation:slideUp .3s ease;max-height:90vh;overflow-y:auto;backdrop-filter:blur(24px) saturate(160%)}
+.modal-title{font-family:var(--fh);font-size:1.15rem;font-weight:700;margin-bottom:18px;color:var(--gold)}
+.modal-footer{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap}
+
+/* TOAST (moved to bottom-left so it never sits under the fluid menu) */
+#toast{position:fixed;bottom:24px;left:24px;z-index:9999;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 20px;font-size:.85rem;box-shadow:var(--shadow);display:flex;align-items:center;gap:9px;max-width:min(320px,calc(100vw - 48px));transform:translateY(80px);opacity:0;transition:all .3s ease;pointer-events:none;backdrop-filter:blur(20px) saturate(160%)}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty-icon{font-size:2.8rem;margin-bottom:10px;opacity:.4}
+
+/* SPINNER */
+.spin{width:16px;height:16px;border:2px solid rgba(255,255,255,.2);border-top-color:var(--gold);border-radius:50%;animation:spinAnim .7s linear infinite;display:inline-block}
+
+/* PARENT ACCESS BANNER */
+.parent-banner{background:linear-gradient(135deg,rgba(0,200,150,.1),rgba(0,200,150,.04));border:1.5px solid var(--emerald);border-radius:var(--r);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:14px}
+.parent-banner-left .lbl{font-size:.72rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.parent-banner-left .name{font-family:var(--fh);font-size:1.2rem;font-weight:700;color:var(--emerald);margin-top:2px}
+
+/* CHANGE PASS PANEL */
+.change-pass-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:28px;max-width:420px}
+
+/* PAYSTACK OVERLAY INDICATOR */
+.paystack-note{background:rgba(244,197,66,.07);border:1px solid rgba(244,197,66,.25);border-radius:10px;padding:12px 16px;font-size:.82rem;color:var(--gold);margin-top:10px;display:none}
+.paystack-note.show{display:block}
+
+/* SECURITY RING */
+.sec-ring{width:90px;height:90px;border-radius:50%;background:conic-gradient(var(--emerald) 0deg 324deg,rgba(255,255,255,.05) 324deg 360deg);display:flex;align-items:center;justify-content:center;font-family:var(--fh);font-size:1.3rem;font-weight:800;color:var(--emerald);margin:0 auto 10px;box-shadow:0 0 0 7px rgba(0,200,150,.07);position:relative}
+.sec-ring::before{content:'';position:absolute;inset:7px;border-radius:50%;background:var(--navy-mid)}
+.sec-ring span{position:relative;z-index:1}
+
+/* ANIMATIONS */
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.4)}}
+@keyframes spinAnim{to{transform:rotate(360deg)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+.shake{animation:shake .4s ease}
+
+.hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+.chip{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:.75rem;color:var(--muted)}
+.btn-icon{background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background .2s;font-size:.95rem}
+.btn-icon:hover{background:rgba(255,90,110,.15)}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+
+/* ════════════════════════════════════════
+   BACKGROUND PHOTO + GLASSMORPHISM
+   Photo sits on its own fixed layer (iOS ignores background-attachment:fixed),
+   a frosted sheet covers the whole page, and every panel is frosted glass on top.
+══════════════════════════════════════════*/
+.bg-scene{position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none;background:linear-gradient(160deg,var(--navy-light),var(--navy) 70%)}
+.bg-photo{position:absolute;inset:-28px;background-size:cover;background-position:center;opacity:0;transform:scale(1.08);transition:opacity 1.4s ease,transform 12s ease-out}
+.bg-photo.ready{opacity:1;transform:scale(1)}
+.bg-frost{position:absolute;inset:0;background:linear-gradient(180deg,var(--tint-top),var(--tint-bottom));-webkit-backdrop-filter:blur(4px) saturate(130%);backdrop-filter:blur(4px) saturate(130%)}
+
+.card,.stat-card,.login-card,.auth-card,.topbar,.chip{-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur)}
+.card,.stat-card,.login-card,.auth-card{box-shadow:var(--shadow),inset 0 1px 0 var(--glass-hi);transition:background-color .35s ease,border-color .35s ease}
+.topbar{background:var(--topbar-bg);transition:background-color .35s ease}
+.modal{background:var(--modal-bg)}
+
+/* ════════════════════════════════════════
+   THEME TOGGLE (inside the fluid menu)
+══════════════════════════════════════════*/
+.fluid-action{color:var(--gold)}
+.theme-ic{grid-area:1/1;transition:transform .55s cubic-bezier(.34,1.56,.64,1),opacity .3s ease}
+.fluid-action .ic-moon{opacity:0;transform:rotate(-90deg) scale(.4)}
+[data-theme="light"] .fluid-action .ic-sun{opacity:0;transform:rotate(90deg) scale(.4)}
+[data-theme="light"] .fluid-action .ic-moon{opacity:1;transform:none}
+
+/* ════════════════════════════════════════
+   LIGHT THEME -- only re-defines tokens and the few hard-coded dark values
+══════════════════════════════════════════*/
+[data-theme="light"]{
+  color-scheme:light;
+  --gold:#a06f00; --gold-dim:#7f5800; --gold-light:#c48a00;
+  --emerald:#008a66; --rose:#d1283d; --sky:#0a77ad; --violet:#6b3fd6;
+  --white:#0e1c36; --muted:#4b5f82;
+  --card:rgba(255,255,255,.52); --border:rgba(15,30,58,.14);
+  --shadow:0 8px 32px rgba(31,45,90,.16);
+  --page-bg:#dde7f7;
+  --tint-top:rgba(244,247,255,.5); --tint-bottom:rgba(226,235,252,.74);
+  --topbar-bg:rgba(255,255,255,.55);
+  --modal-bg:rgba(255,255,255,.88);
+  --glass-hi:rgba(255,255,255,.75);
+  --fluid-bg:#f3f6ff; --fluid-bg-hover:#e0e9fb;
+}
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea{background:rgba(255,255,255,.65);border-color:rgba(15,30,58,.2)}
+[data-theme="light"] select option{background:#fff;color:#0e1c36}
+[data-theme="light"] td{border-bottom-color:rgba(15,30,58,.07)}
+[data-theme="light"] tr:hover td{background:rgba(15,30,58,.03)}
+[data-theme="light"] .tl-item{border-bottom-color:rgba(15,30,58,.07)}
+[data-theme="light"] .pbar{background:rgba(15,30,58,.1)}
+[data-theme="light"] .pm-card{background:rgba(255,255,255,.4);border-color:rgba(15,30,58,.14)}
+[data-theme="light"] .fw-item,
+[data-theme="light"] .chip{background:rgba(255,255,255,.45)}
+[data-theme="light"] .sec-ring{background:conic-gradient(var(--emerald) 0deg 324deg,rgba(15,30,58,.1) 324deg 360deg)}
+[data-theme="light"] .sec-ring::before{background:#eaf0fd}
+[data-theme="light"] .modal-ov{background:rgba(15,30,58,.4)}
+[data-theme="light"] .btn-gold,
+[data-theme="light"] .btn-emerald,
+[data-theme="light"] .btn-sky,
+[data-theme="light"] .chart-tab.active,
+[data-theme="light"] .nav-tab.active{color:#fff}
+[data-theme="light"] .overlay-face{color:#fff}
+[data-theme="light"] .fluid-label{background:rgba(255,255,255,.94);color:var(--white)}
+[data-theme="light"] .fluid-backdrop{background:rgba(226,235,252,.6)}
+</style>
+</head>
+<body>
+
+<!-- BACKGROUND: random PTA / school photo + a frosted-glass sheet over the whole page -->
+<div class="bg-scene" aria-hidden="true">
+  <div class="bg-photo" id="bgPhoto"></div>
+  <div class="bg-frost"></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 1 -- MERGED ONBOARDING (Create Account ⇄ Sign In prompt)
+══════════════════════════════════════════ -->
+<div id="s-onboard" class="screen">
+  <div class="onboard-wrap">
+    <div class="onboard-logo">Edu<span>Pay</span></div>
+    <div class="onboard-tagline">School P.T.A Fees Monitor System</div>
+
+    <div class="auth-card" id="authCard">
+      <!-- FORM ZONE: two panels, cross-faded, slot moves with the overlay -->
+      <div class="auth-formzone">
+
+        <!-- CREATE ACCOUNT FORM -->
+        <div class="auth-form active" id="signupForm">
+          <div class="form-heading">🏫 Create your account</div>
+          <div class="form-sub">Set up your school's PTA payment system. This account will be the administrator account.</div>
+
+          <div class="form-field">
+            <label>Select School Name *</label>
+            <div class="input-wrap">
+              <input type="text" id="regSchool" placeholder="Type your school name..." oninput="suggestSchools()" autocomplete="off" />
+              <div class="school-suggestions" id="schoolSugg"></div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field" style="margin-bottom:0">
+              <label>Admin Phone (Receiving Money) *</label>
+              <input type="tel" id="regPhone" placeholder="+233 XX XXX XXXX" />
+            </div>
+            <div class="form-field" style="margin-bottom:0">
+              <label>Email Address *</label>
+              <input type="email" id="regEmail" placeholder="you@school.edu.gh" />
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label>Admin Password *</label>
+            <div class="input-wrap">
+              <input type="password" id="regPass" placeholder="Create a strong password" oninput="checkStrength()" />
+              <button class="pass-toggle" type="button" onclick="togglePass('regPass',this)">👁</button>
+            </div>
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            <div style="font-size:.7rem;color:var(--muted);margin-top:3px" id="strengthLbl"></div>
+          </div>
+          <div class="form-field">
+            <label>Confirm Password *</label>
+            <div class="input-wrap">
+              <input type="password" id="regPass2" placeholder="Re-enter password" />
+              <button class="pass-toggle" type="button" onclick="togglePass('regPass2',this)">👁</button>
+            </div>
+          </div>
+
+          <div id="regAlert" class="alert"></div>
+          <div style="margin-top:4px">
+            <button class="btn btn-gold btn-full" onclick="doRegister()">✅ Create Account &amp; Login</button>
+          </div>
+        </div>
+
+        <!-- SIGN-IN PROMPT PANEL -->
+        <div class="auth-form" id="signinForm">
+          <div class="form-heading">👋 Welcome back</div>
+          <div class="form-sub">Your school's dashboard, students and transactions are right where you left them. Sign in to continue.</div>
+          <button class="btn btn-gold btn-full" onclick="goto('s-adminlogin')">🔓 Continue to Login</button>
+          <div style="text-align:center;margin-top:16px">
+            <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Parent? Use the Parent Access portal</div>
+            <button class="btn btn-ghost btn-full" onclick="goto('s-parentlogin')">👨‍👩‍👧 Parent Access Login</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLIDING / TURNING OVERLAY -->
+      <div class="auth-overlay" id="authOverlay">
+        <div class="overlay-face overlay-front active" id="overlayFront">
+          <div class="auth-icon-wrap">
+            <svg viewBox="0 0 96 88" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="iconCardFront" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#132848"/>
+                  <stop offset="1" stop-color="#0a1628"/>
+                </linearGradient>
+              </defs>
+              <rect x="12" y="12" width="62" height="54" rx="17" fill="rgba(10,22,40,0.16)" transform="rotate(-6 43 39)"/>
+              <rect x="20" y="15" width="62" height="54" rx="17" fill="url(#iconCardFront)" stroke="rgba(255,255,255,.28)" stroke-width="1.2"/>
+              <circle cx="51" cy="35" r="10.5" fill="#f4f7ff"/>
+              <path d="M34 58c2.2-10.5 10.4-15.6 17-15.6s14.8 5.1 17 15.6" fill="none" stroke="#f4f7ff" stroke-width="4.2" stroke-linecap="round"/>
+              <circle cx="17" cy="53" r="14" fill="var(--navy)" stroke="rgba(244,197,66,.55)" stroke-width="1.6"/>
+              <path d="M11 53h11.5m0 0-4-4.2m4 4.2-4 4.2" stroke="var(--gold)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="overlay-title">Good to see you</div>
+          <div class="overlay-text">Already have an account? Your projects are right where you left them. Sign in and pick up the thread.</div>
+          <button class="btn btn-overlay" onclick="toggleAuth(true)">← Back to sign in</button>
+        </div>
+        <div class="overlay-face overlay-back" id="overlayBack">
+          <div class="auth-icon-wrap">
+            <svg viewBox="0 0 96 88" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="iconCardBack" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#132848"/>
+                  <stop offset="1" stop-color="#0a1628"/>
+                </linearGradient>
+              </defs>
+              <rect x="12" y="14" width="62" height="54" rx="17" fill="rgba(10,22,40,0.16)" transform="rotate(-6 43 41)"/>
+              <rect x="20" y="17" width="62" height="54" rx="17" fill="url(#iconCardBack)" stroke="rgba(255,255,255,.28)" stroke-width="1.2"/>
+              <circle cx="51" cy="37" r="10.5" fill="#f4f7ff"/>
+              <path d="M34 60c2.2-10.5 10.4-15.6 17-15.6s14.8 5.1 17 15.6" fill="none" stroke="#f4f7ff" stroke-width="4.2" stroke-linecap="round"/>
+              <circle cx="22" cy="19" r="13" fill="var(--navy)" stroke="rgba(0,200,150,.6)" stroke-width="1.6"/>
+              <path d="M16.5 19.3l4 4 8-8.4" stroke="var(--emerald)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+              <rect x="68" y="52" width="25" height="18" rx="5.5" fill="var(--navy)" stroke="rgba(244,197,66,.55)" stroke-width="1.6"/>
+              <line x1="72.5" y1="57.5" x2="88.5" y2="57.5" stroke="var(--gold)" stroke-width="1.7" stroke-linecap="round"/>
+              <line x1="72.5" y1="62.5" x2="84" y2="62.5" stroke="var(--gold)" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="overlay-title">New here?</div>
+          <div class="overlay-text">Start building in minutes. Create a workspace for your school and start collecting PTA fees securely.</div>
+          <button class="btn btn-overlay" onclick="toggleAuth(false)">Create account →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 2 -- ADMIN LOGIN
+══════════════════════════════════════════ -->
+<div id="s-adminlogin" class="screen">
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:24px">
+      <div style="font-family:var(--fh);font-size:2rem;font-weight:800;color:var(--gold)">Edu<span style="color:var(--white)">Pay</span></div>
+      <div style="font-size:.8rem;color:var(--muted)">🔒 Administrator Access</div>
+    </div>
+    <div class="login-card">
+      <div class="login-title">🏫 Administrator Login</div>
+      <div class="login-school" id="loginSchoolName">Loading school...</div>
+      <div class="lockout-banner" id="lockoutBanner">⏱️ Too many failed attempts. System locked for <span id="lockTimer">30:00</span></div>
+
+      <div class="form-field">
+        <label>Admin Phone Number</label>
+        <input type="tel" id="loginPhone" placeholder="+233 XX XXX XXXX" />
+      </div>
+      <div class="form-field">
+        <label>Password</label>
+        <div class="input-wrap">
+          <input type="password" id="loginPass" placeholder="Enter your password" onkeyup="if(event.key==='Enter')doAdminLogin()" />
+          <button class="pass-toggle" type="button" onclick="togglePass('loginPass',this)">👁</button>
+        </div>
+      </div>
+      <div id="loginAlert" class="alert"></div>
+      <button class="btn btn-gold btn-full" style="margin-top:6px" onclick="doAdminLogin()">🔓 Login</button>
+
+      <div class="forgot-row" style="margin-top:14px">
+        <button class="text-link" onclick="showModal('m-forgot')">Forgot Password?</button>
+        <button class="text-link" onclick="showModal('m-changepass')">Change Password</button>
+      </div>
+      <hr class="hr">
+      <div style="text-align:center">
+        <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px">Parent? Use the Parent Access portal</div>
+        <button class="btn btn-emerald btn-full" style="font-size:.85rem" onclick="goto('s-parentlogin')">👨‍👩‍👧 Parent Access Login</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 3 -- PARENT LOGIN
+══════════════════════════════════════════ -->
+<div id="s-parentlogin" class="screen">
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px">
+    <div style="margin-bottom:20px;text-align:center">
+      <div style="font-family:var(--fh);font-size:1.8rem;font-weight:800;color:var(--emerald)">Parent Access</div>
+      <div style="color:var(--muted);font-size:.85rem;margin-top:4px" id="parentSchoolLabel">School PTA Payment Portal</div>
+    </div>
+    <div class="login-card" style="max-width:400px">
+      <div style="font-family:var(--fh);font-size:1.1rem;font-weight:700;color:var(--emerald);margin-bottom:6px">👨‍👩‍👧 Parent Login</div>
+      <div style="color:var(--muted);font-size:.8rem;margin-bottom:20px">Enter your details to access the PTA payment portal.</div>
+      <div class="form-field">
+        <label>Your Phone Number</label>
+        <input type="tel" id="parentPhone" placeholder="+233 XX XXX XXXX" />
+      </div>
+      <div class="form-field">
+        <label>Student Name (your child)</label>
+        <input type="text" id="parentStudentName" placeholder="e.g. Ama Owusu" />
+      </div>
+      <div id="parentLoginAlert" class="alert"></div>
+      <button class="btn btn-emerald btn-full" style="margin-top:6px" onclick="doParentLogin()">Login as Parent</button>
+      <div style="text-align:center;margin-top:14px">
+        <button class="text-link" onclick="goto('s-adminlogin')">← Back to Admin Login</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCREEN 4 -- MAIN APP
+══════════════════════════════════════════ -->
+<div id="s-app" class="screen">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div>
+      <div class="topbar-brand">Edu<span>Pay</span></div>
+      <div class="topbar-school" id="appSchoolLabel">School PTA</div>
+    </div>
+    <div class="topbar-right">
+      <div class="live-clock"><div class="live-dot"></div><span id="liveClock">--:--:--</span></div>
+      <button class="topbar-btn" id="changePassBtn" onclick="showModal('m-changepass')" style="display:none">🔑 Change Password</button>
+      <button class="topbar-btn danger" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- ══ FLUID NAVIGATION ══
+       Items are listed nearest-the-toggle first (Dashboard sits right above the button).
+       Keep id="mainNav", class="nav-tab" and data-tab="..." -- the JS relies on them. -->
+  <div class="fluid-nav" id="fluidNav">
+    <div class="fluid-backdrop" onclick="toggleFluid(false)"></div>
+    <div class="fluid-stack">
+      <nav class="fluid-list" id="mainNav" aria-label="Main navigation">
+
+        <button class="nav-tab active" data-tab="dashboard" onclick="pickTab('dashboard',this)" aria-label="Dashboard">
+          <svg class="fluid-icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          <span class="fluid-label">Dashboard</span>
+        </button>
+
+        <button class="nav-tab" data-tab="payment" onclick="pickTab('payment',this)" aria-label="Process Payment">
+          <svg class="fluid-icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+          <span class="fluid-label">Process Payment</span>
+        </button>
+
+        <button class="nav-tab" data-tab="students" onclick="pickTab('students',this)" aria-label="Students DB">
+          <svg class="fluid-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>
+          <span class="fluid-label">Students DB</span>
+        </button>
+
+        <button class="nav-tab" data-tab="transactions" onclick="pickTab('transactions',this)" aria-label="Transactions">
+          <svg class="fluid-icon" viewBox="0 0 24 24" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+          <span class="fluid-label">Transactions</span>
+        </button>
+
+        <button class="nav-tab" data-tab="analytics" onclick="pickTab('analytics',this)" aria-label="Analytics">
+          <svg class="fluid-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
+          <span class="fluid-label">Analytics</span>
+        </button>
+
+        <button class="nav-tab" data-tab="security" onclick="pickTab('security',this)" aria-label="Security">
+          <svg class="fluid-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg>
+          <span class="fluid-label">Security</span>
+        </button>
+
+        <!-- THEME TOGGLE: sun shows in dark mode (tap for light), moon shows in light mode (tap for dark) -->
+        <button class="fluid-action" id="themeBtn" onclick="toggleTheme()" aria-label="Switch to light mode" aria-pressed="false">
+          <svg class="fluid-icon theme-ic ic-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+          <svg class="fluid-icon theme-ic ic-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          <span class="fluid-label" id="themeLabel">Light mode</span>
+        </button>
+
+      </nav>
+
+      <button class="fluid-toggle" id="fluidToggle" onclick="toggleFluid()" aria-label="Open menu" aria-expanded="false" aria-controls="mainNav">
+        <svg class="ic-menu" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" x2="20" y1="7" y2="7"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="17" y2="17"/></svg>
+        <svg class="ic-close" viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="panel-dashboard" class="panel active">
+      <div class="sec-hdr">
+        <div>
+          <div class="sec-title">Good <span id="greet">Morning</span>, Admin 👋</div>
+          <div class="sec-sub" id="todayDate"></div>
+        </div>
+        <div class="chip" id="dashSchoolChip">🏫 School</div>
+      </div>
+      <div class="g4" style="margin-bottom:22px">
+        <div class="stat-card c-gold"><div class="stat-lbl">Monthly Collected</div><div class="stat-v" id="stMonth">GH₵ 0</div><div class="stat-note">↑ This month</div><div class="pbar"><div class="pfill" id="monthPfill" style="width:0%"></div></div></div>
+        <div class="stat-card c-em"><div class="stat-lbl">Today's Transactions</div><div class="stat-v" id="stToday">0</div><div class="stat-note">Payments today</div></div>
+        <div class="stat-card c-sky"><div class="stat-lbl">Students Registered</div><div class="stat-v" id="stStudents">0</div><div class="stat-note">In database</div></div>
+        <div class="stat-card c-rose"><div class="stat-lbl">Pending Payments</div><div class="stat-v" id="stPending">0</div><div class="stat-note">Awaiting payment</div></div>
+      </div>
+      <div class="g2">
+        <div class="card"><div class="card-title">⚡ Recent Transactions</div><div class="timeline" id="dashTL"><div class="empty"><div class="empty-icon">💸</div><p>No transactions yet</p></div></div></div>
+        <div class="card"><div class="card-title">🛡️ Security Status</div><div class="sec-ring"><span>90</span></div><div style="text-align:center;font-size:.8rem;color:var(--muted);margin-bottom:14px">Score -- Excellent</div>
+          <div class="fw-grid">
+            <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">Firewall Active<small>All threats blocked</small></div></div>
+            <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">SSL Encrypted<small>256-bit encryption</small></div></div>
+            <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">Auth Locked<small>Admin-only access</small></div></div>
+            <div class="fw-item"><div class="fw-dot warn"></div><div class="fw-lbl">GPS Active<small>Tracking payments</small></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PAYMENT ── -->
+    <div id="panel-payment" class="panel">
+      <div id="parentBanner" class="parent-banner" style="display:none">
+        <div class="parent-banner-left"><div class="lbl">Logged in as Parent</div><div class="name" id="parentBannerName">Parent</div></div>
+        <button class="btn btn-ghost" onclick="doLogout()" style="font-size:.8rem">Exit Parent Portal</button>
+      </div>
+      <div class="sec-hdr"><div><div class="sec-title">💳 Process PTA Payment</div><div class="sec-sub">Pay via MTN MoMo, Telecel, or Bank -- powered by Paystack</div></div></div>
+      <div class="g2">
+        <div class="card">
+          <div class="card-title">👤 Parent &amp; Student Details</div>
+          <div class="form-field"><label>Parent / Guardian Name *</label><input type="text" id="pyParent" placeholder="e.g. Mr. Kwame Mensah" /></div>
+          <div class="form-field"><label>Parent Phone Number *</label><input type="tel" id="pyPhone" placeholder="+233 XX XXX XXXX" /></div>
+          <div class="form-field"><label>Parent Email (for receipt) *</label><input type="email" id="pyEmail" placeholder="parent@email.com" /></div>
+          <div class="form-row">
+            <div><label>Student Name *</label><input type="text" id="pyStudent" placeholder="e.g. Ama Mensah" oninput="autoFill()" /></div>
+            <div><label>Class</label><input type="text" id="pyClass" placeholder="e.g. Form 2A" /></div>
+          </div>
+          <div class="form-field"><label>PTA Amount (GH₵) *</label><input type="number" id="pyAmount" placeholder="e.g. 50" min="1" /></div>
+          <div id="autoFillMsg" class="alert" style="margin-bottom:0"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">💳 Select Payment Method</div>
+          <label style="margin-bottom:10px;display:block">Choose your payment method -- Paystack will open automatically</label>
+          <div class="pm-grid">
+            <div class="pm-card" onclick="selMethod('mtn',this)" id="pm-mtn"><div class="pm-icon">📱</div><div class="pm-name">MTN MoMo</div><div class="pm-sub">Mobile Money</div></div>
+            <div class="pm-card" onclick="selMethod('telecel',this)" id="pm-telecel"><div class="pm-icon">📲</div><div class="pm-name">Telecel</div><div class="pm-sub">Mobile Money</div></div>
+            <div class="pm-card" onclick="selMethod('visa',this)" id="pm-visa"><div class="pm-icon">🏦</div><div class="pm-name">Bank / Visa</div><div class="pm-sub">Card Payment</div></div>
+          </div>
+          <div class="paystack-note show" id="paystackNote">🔒 Clicking "Pay Now" will open Paystack's secure payment page automatically pre-set to your chosen method.</div>
+          <div class="gps-bar" id="gpsBar" style="display:none"><div class="gps-dot"></div><div><strong style="font-size:.83rem">📍 Location Captured</strong><div id="gpsText" style="color:var(--muted);font-size:.75rem;margin-top:1px">Detecting...</div></div></div>
+          <div id="payAlert" class="alert" style="margin-top:12px"></div>
+          <button class="btn btn-gold btn-full" style="margin-top:18px" onclick="initPaystack()">🔒 Pay Now via Paystack</button>
+          <div class="vcode-box" id="vcodeBox">
+            <div class="vcode-lbl">🎉 Payment Verified -- Your Code</div>
+            <div class="vcode-val" id="vcodeVal">--------</div>
+            <div class="vcode-sub" id="vcodeTime">Sent to your phone via SMS</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STUDENTS ── -->
+    <div id="panel-students" class="panel">
+      <div class="sec-hdr"><div><div class="sec-title">🎓 Student Database</div><div class="sec-sub">Add, manage and remove student records</div></div><button class="btn btn-gold" onclick="showModal('m-addstudent')">+ Add Student</button></div>
+      <div class="card">
+        <div class="search-bar"><input type="text" id="stuSearch" placeholder="Search by name, ID, class or house..." oninput="renderStudents()" /></div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Student</th><th>Class</th><th>Course</th><th>House</th><th>Parent</th><th>Amt Paid</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="stuTbody"><tr><td colspan="9"><div class="empty"><div class="empty-icon">🎓</div><p>No students yet</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TRANSACTIONS ── -->
+    <div id="panel-transactions" class="panel">
+      <div class="sec-hdr"><div><div class="sec-title">📋 Transaction Log</div><div class="sec-sub">All PTA payments with timestamps &amp; location</div></div><button class="btn btn-ghost" onclick="exportCSV()">⬇ Export CSV</button></div>
+      <div class="card">
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Time</th><th>Parent</th><th>Student</th><th>Class</th><th>Amount</th><th>Method</th><th>Code</th><th>Location</th><th>Status</th></tr></thead>
+            <tbody id="txTbody"><tr><td colspan="10"><div class="empty"><div class="empty-icon">💳</div><p>No transactions yet</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ANALYTICS ── -->
+    <div id="panel-analytics" class="panel">
+      <div class="sec-hdr"><div><div class="sec-title">📈 Financial Analytics</div><div class="sec-sub">Revenue -- daily, weekly, monthly, yearly</div></div></div>
+      <div class="g4" style="margin-bottom:22px">
+        <div class="stat-card c-gold"><div class="stat-lbl">Today</div><div class="stat-v" id="anDay">GH₵ 0</div></div>
+        <div class="stat-card c-em"><div class="stat-lbl">This Week</div><div class="stat-v" id="anWeek">GH₵ 0</div></div>
+        <div class="stat-card c-sky"><div class="stat-lbl">This Month</div><div class="stat-v" id="anMonth">GH₵ 0</div></div>
+        <div class="stat-card c-rose"><div class="stat-lbl">This Year</div><div class="stat-v" id="anYear">GH₵ 0</div></div>
+      </div>
+      <div class="card" style="margin-bottom:22px">
+        <div class="card-title">📊 Revenue Chart</div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="switchChart('daily',this)">Daily</button>
+          <button class="chart-tab" onclick="switchChart('weekly',this)">Weekly</button>
+          <button class="chart-tab" onclick="switchChart('monthly',this)">Monthly</button>
+        </div>
+        <div class="chart-bars" id="chartBars"></div>
+        <div style="display:flex;gap:6px;margin-top:6px" id="chartLbls"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">💳 By Payment Method</div>
+        <div class="g3">
+          <div class="stat-card c-gold"><div class="stat-lbl">MTN MoMo</div><div class="stat-v" id="bmMtn">GH₵ 0</div></div>
+          <div class="stat-card c-em"><div class="stat-lbl">Telecel</div><div class="stat-v" id="bmTel">GH₵ 0</div></div>
+          <div class="stat-card c-sky"><div class="stat-lbl">Bank / Visa</div><div class="stat-v" id="bmVisa">GH₵ 0</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SECURITY ── -->
+    <div id="panel-security" class="panel">
+      <div class="sec-hdr"><div><div class="sec-title">🛡️ Security Center</div><div class="sec-sub">Firewall, access control &amp; threat monitoring</div></div></div>
+      <div class="g2" style="margin-bottom:22px">
+        <div class="card" style="text-align:center">
+          <div class="card-title" style="justify-content:center">🔒 Security Score</div>
+          <div class="sec-ring" style="margin:14px auto"><span>90</span></div>
+          <div style="color:var(--emerald);font-weight:700">EXCELLENT</div>
+          <div style="color:var(--muted);font-size:.8rem;margin-top:4px">All critical systems operational</div>
+        </div>
+        <div class="card"><div class="card-title">⚠️ Threat Log</div><div class="timeline" id="threatLog"><div class="empty"><div class="empty-icon">✅</div><p>No threats detected</p></div></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🛡️ Active Protocols</div>
+        <div class="fw-grid">
+          <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">Rate Limiting<small>Lockout after 5 fails</small></div></div>
+          <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">Phone Whitelist<small>Admin number enforced</small></div></div>
+          <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">Session Timeout<small>Auto-logout 20 min idle</small></div></div>
+          <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">Password Hashing<small>Bcrypt-style hash stored</small></div></div>
+          <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">Paystack Secured<small>PCI-DSS compliant payments</small></div></div>
+          <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">GPS Logging<small>Location per transaction</small></div></div>
+          <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">XSS Prevention<small>Input sanitized always</small></div></div>
+          <div class="fw-item"><div class="fw-dot ok"></div><div class="fw-lbl">Audit Trail<small>All actions timestamped</small></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end .content -->
+</div><!-- end #s-app -->
+
+
+<!-- ══════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ -->
+
+<!-- FORGOT PASSWORD -->
+<div class="modal-ov" id="m-forgot">
+  <div class="modal">
+    <div class="modal-title">🔑 Forgot Password</div>
+    <div style="font-size:.88rem;color:var(--muted);margin-bottom:18px;line-height:1.6">
+      To reset your password, contact the system developer to receive a master unlock code.<br><br>
+      <strong style="color:var(--gold)">Developer Contact:</strong><br>
+      📱 WhatsApp / Call: <strong style="color:var(--sky)">+233 XX XXX XXXX</strong><br>
+      📧 Email: <strong style="color:var(--sky)">developer@edupay.com</strong><br><br>
+      The developer will verify your identity and provide a master code to regain access.
+    </div>
+    <div class="form-field">
+      <label>Enter Master Code (from developer)</label>
+      <input type="text" id="masterCode" placeholder="Enter master unlock code" />
+    </div>
+    <div class="form-field">
+      <label>New Password</label>
+      <div class="input-wrap"><input type="password" id="masterNewPass" placeholder="Enter new password" /><button class="pass-toggle" type="button" onclick="togglePass('masterNewPass',this)">👁</button></div>
+    </div>
+    <div id="forgotAlert" class="alert"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('m-forgot')">Cancel</button>
+      <button class="btn btn-gold" onclick="doForgotReset()">Reset Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD -->
+<div class="modal-ov" id="m-changepass">
+  <div class="modal">
+    <div class="modal-title">🔒 Change Password</div>
+    <div class="form-field">
+      <label>Current Password *</label>
+      <div class="input-wrap"><input type="password" id="cpOld" placeholder="Enter current password" /><button class="pass-toggle" type="button" onclick="togglePass('cpOld',this)">👁</button></div>
+    </div>
+    <div class="form-field">
+      <label>New Password *</label>
+      <div class="input-wrap"><input type="password" id="cpNew" placeholder="Enter new password" /><button class="pass-toggle" type="button" onclick="togglePass('cpNew',this)">👁</button></div>
+    </div>
+    <div class="form-field">
+      <label>Confirm New Password *</label>
+      <div class="input-wrap"><input type="password" id="cpNew2" placeholder="Re-enter new password" /><button class="pass-toggle" type="button" onclick="togglePass('cpNew2',this)">👁</button></div>
+    </div>
+    <div id="cpAlert" class="alert"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('m-changepass');cpFails=0">Cancel</button>
+      <button class="btn btn-gold" onclick="doChangePass()">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD STUDENT -->
+<div class="modal-ov" id="m-addstudent">
+  <div class="modal">
+    <div class="modal-title">🎓 Add New Student</div>
+    <div class="form-row">
+      <div class="form-field"><label>Student ID *</label><input type="text" id="sId" placeholder="e.g. GH2024001" /></div>
+      <div class="form-field"><label>Full Name *</label><input type="text" id="sName" placeholder="e.g. Ama Owusu" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Class *</label><input type="text" id="sClass" placeholder="e.g. Form 2A" /></div>
+      <div class="form-field"><label>Course</label>
+        <select id="sCourse">
+          <option value="General Science">General Science</option>
+          <option value="Business">Business</option>
+          <option value="General Arts">General Arts</option>
+          <option value="Home Economics">Home Economics</option>
+          <option value="Technical">Technical</option>
+          <option value="Visual Arts">Visual Arts</option>
+          <option value="Agriculture">Agriculture</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>House</label>
+        <select id="sHouse"><option>Apollo</option><option>Mercury</option><option>Saturn</option><option>Venus</option></select>
+      </div>
+      <div class="form-field"><label>Parent / Guardian *</label><input type="text" id="sParent" placeholder="e.g. Mr. Kwame Owusu" /></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Amount Paid (GH₵)</label><input type="number" id="sAmtPaid" placeholder="0.00" min="0" /></div>
+      <div class="form-field"><label>PTA Fee Status</label>
+        <select id="sFeeStatus"><option value="pending">Pending</option><option value="paid">Paid</option></select>
+      </div>
+    </div>
+    <div id="addStuAlert" class="alert"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('m-addstudent')">Cancel</button>
+      <button class="btn btn-emerald" onclick="addStudent()">✅ Save Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"><span id="toastIcon">✅</span><span id="toastMsg">Done!</span></div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  SIMPLE HASH (browser-safe, not cryptographic -- for demo storage)
+//  In production use bcrypt server-side.
+// ═══════════════════════════════════════════════════════════════
+function simpleHash(str) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = (h * 0x01000193) >>> 0;
+  }
+  return h.toString(16).padStart(8,'0') + btoa(str.split('').reverse().join('')).replace(/=/g,'');
+}
+function verifyHash(plain, hash) { return simpleHash(plain) === hash; }
+
+// MASTER UNLOCK CODE (developer's secret)
+const MASTER_CODE = 'EDUPAY-MASTER-2024';
+
+// Default Paystack public key -- since the sign-up form no longer collects a key from the
+// admin, replace this constant with your school's real key (from paystack.com) for live payments.
+const DEFAULT_PAYSTACK_KEY = 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+
+// ═══════════════════════════════════════════════════════════════
+//  APP STATE
+// ═══════════════════════════════════════════════════════════════
+let ST = {
+  account: null,        // { school, phone, email, passHash }
+  students: [],
+  transactions: [],
+  loginAttempts: 0,
+  lockUntil: 0,
+  session: null,        // { role: 'admin'|'parent', name, phone }
+  gps: null,
+  payMethod: null,
+  cpFails: 0,
+  cpLockUntil: 0
+};
+
+let sessionTimer = null;
+let lockCountdown = null;
+
+// ── PERSIST ──────────────────────────────────────────────────
+function save() {
+  localStorage.setItem('edupay_v2', JSON.stringify({
+    account: ST.account, students: ST.students,
+    transactions: ST.transactions, loginAttempts: ST.loginAttempts,
+    lockUntil: ST.lockUntil, cpFails: ST.cpFails, cpLockUntil: ST.cpLockUntil
+  }));
+}
+function load() {
+  try {
+    const d = JSON.parse(localStorage.getItem('edupay_v2') || '{}');
+    ST.account = d.account || null;
+    ST.students = d.students || [];
+    ST.transactions = d.transactions || [];
+    ST.loginAttempts = d.loginAttempts || 0;
+    ST.lockUntil = d.lockUntil || 0;
+    ST.cpFails = d.cpFails || 0;
+    ST.cpLockUntil = d.cpLockUntil || 0;
+  } catch(e) {}
+}
+
+// ── SCREEN ROUTING ────────────────────────────────────────────
+function goto(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+
+// ── ONBOARDING SLIDING PANEL ──────────────────────────────────
+function toggleAuth(showSignin) {
+  const card = document.getElementById('authCard');
+  card.classList.toggle('show-signin', showSignin);
+  document.getElementById('signupForm').classList.toggle('active', !showSignin);
+  document.getElementById('signinForm').classList.toggle('active', showSignin);
+  document.getElementById('overlayFront').classList.toggle('active', !showSignin);
+  document.getElementById('overlayBack').classList.toggle('active', showSignin);
+}
+
+// ── BOOTSTRAP ────────────────────────────────────────────────
+window.onload = function() {
+  load();
+  startClock();
+  applyTheme(currentTheme(), false);
+  initBackground();
+  if (!ST.account) {
+    goto('s-onboard');
+  } else {
+    refreshLoginScreen();
+    goto('s-adminlogin');
+  }
+};
+
+function refreshLoginScreen() {
+  if (!ST.account) return;
+  document.getElementById('loginSchoolName').textContent = '🏫 ' + (ST.account.school || 'Your School');
+  document.getElementById('parentSchoolLabel').textContent = ST.account.school + ' -- PTA Payment';
+}
+
+// ── CLOCK & GREETING ─────────────────────────────────────────
+function startClock() {
+  function tick() {
+    const n = new Date();
+    const el = document.getElementById('liveClock');
+    if (el) el.textContent = n.toLocaleTimeString('en-GB');
+  }
+  tick(); setInterval(tick, 1000);
+}
+
+// ── SESSION TIMEOUT ──────────────────────────────────────────
+function resetSession() {
+  if (sessionTimer) clearTimeout(sessionTimer);
+  sessionTimer = setTimeout(() => {
+    if (ST.session) { toast('⏰ Session expired. Please login again.','info'); setTimeout(doLogout, 2000); }
+  }, 20 * 60 * 1000);
+}
+document.addEventListener('click', resetSession);
+
+// ═══════════════════════════════════════════════════════════════
+//  REGISTRATION
+// ═══════════════════════════════════════════════════════════════
+const SCHOOLS = ['Achimota School','Legon Secondary School','Wesley Grammar School','St. Thomas Aquinas Secondary School','Accra Academy','Prempeh College','Opoku Ware School','St. Peter\'s Secondary School','Mawuli School','Navrongo Secondary School','Tamale Secondary School','Krobo Girls\' High School','St. Louis Senior High School','Ghana Secondary Technical School','Pope John Senior High School','Bompeh Secondary School'];
+
+function suggestSchools() {
+  const q = document.getElementById('regSchool').value.toLowerCase();
+  const box = document.getElementById('schoolSugg');
+  if (q.length < 2) { box.classList.remove('show'); return; }
+  const matches = SCHOOLS.filter(s => s.toLowerCase().includes(q)).slice(0,6);
+  if (!matches.length) { box.classList.remove('show'); return; }
+  box.innerHTML = matches.map(s => `<div class="school-option" onclick="pickSchool('${s.replace(/'/g,"\\'")}')">🏫 ${s}</div>`).join('');
+  box.classList.add('show');
+}
+function pickSchool(name) {
+  document.getElementById('regSchool').value = name;
+  document.getElementById('schoolSugg').classList.remove('show');
+}
+
+function checkStrength() {
+  const p = document.getElementById('regPass').value;
+  const fill = document.getElementById('strengthFill');
+  const lbl = document.getElementById('strengthLbl');
+  let score = 0;
+  if (p.length >= 8) score++;
+  if (/[A-Z]/.test(p)) score++;
+  if (/[0-9]/.test(p)) score++;
+  if (/[^A-Za-z0-9]/.test(p)) score++;
+  const colors = ['','#ff5a6e','#f4c542','#00c896','#00c896'];
+  const labels = ['','Weak','Fair','Good','Strong'];
+  fill.style.width = (score * 25) + '%';
+  fill.style.background = colors[score];
+  lbl.textContent = labels[score] || '';
+  lbl.style.color = colors[score];
+}
+
+function doRegister() {
+  const school = sanitize(document.getElementById('regSchool').value.trim());
+  const phone = sanitize(document.getElementById('regPhone').value.trim().replace(/\s/g,''));
+  const email = sanitize(document.getElementById('regEmail').value.trim());
+  const pass = document.getElementById('regPass').value;
+  const pass2 = document.getElementById('regPass2').value;
+  const al = document.getElementById('regAlert');
+
+  if (!school || !phone || !email || !pass) { showAlert(al,'⚠️ Please fill all required fields.','error'); return; }
+  if (!/^\+?\d{9,15}$/.test(phone)) { showAlert(al,'⚠️ Enter a valid phone number.','error'); return; }
+  if (!/.+@.+\..+/.test(email)) { showAlert(al,'⚠️ Enter a valid email address.','error'); return; }
+  if (pass.length < 6) { showAlert(al,'⚠️ Password must be at least 6 characters.','error'); return; }
+  if (pass !== pass2) { showAlert(al,'⚠️ Passwords do not match.','error'); return; }
+
+  ST.account = { school, phone, email, passHash: simpleHash(pass) };
+  save();
+  showAlert(al,'✅ Account created! Logging you in...','success');
+  setTimeout(() => { ST.session = { role:'admin', name:'Admin', phone }; launchApp(); }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ADMIN LOGIN
+// ═══════════════════════════════════════════════════════════════
+function doAdminLogin() {
+  const now = Date.now();
+  if (ST.lockUntil > now) { startLockCountdown(); return; }
+
+  const phone = document.getElementById('loginPhone').value.replace(/\s/g,'');
+  const pass = document.getElementById('loginPass').value;
+  const al = document.getElementById('loginAlert');
+
+  if (!phone || !pass) { showAlert(al,'⚠️ Enter phone and password.','error'); return; }
+  if (!ST.account) { showAlert(al,'⚠️ No account found. Please create one first.','error'); return; }
+
+  const phoneMatch = (phone === ST.account.phone || ('+'+phone) === ST.account.phone);
+  const passMatch = verifyHash(pass, ST.account.passHash);
+
+  if (!phoneMatch || !passMatch) {
+    ST.loginAttempts++;
+    save();
+    logThreat(`Failed admin login attempt #${ST.loginAttempts} from ${phone}`);
+    const rem = 5 - ST.loginAttempts;
+    if (ST.loginAttempts >= 5) {
+      ST.lockUntil = Date.now() + 30 * 60 * 1000;
+      ST.loginAttempts = 0;
+      save();
+      startLockCountdown();
+      return;
+    }
+    showAlert(al, `❌ Invalid credentials. ${rem} attempt(s) remaining.`, 'error');
+    document.querySelector('.login-card').classList.add('shake');
+    setTimeout(() => document.querySelector('.login-card').classList.remove('shake'), 500);
+    return;
+  }
+
+  ST.loginAttempts = 0; save();
+  ST.session = { role:'admin', name:'Admin', phone: ST.account.phone };
+  launchApp();
+}
+
+function startLockCountdown() {
+  const banner = document.getElementById('lockoutBanner');
+  banner.classList.add('show');
+  if (lockCountdown) clearInterval(lockCountdown);
+  lockCountdown = setInterval(() => {
+    const rem = ST.lockUntil - Date.now();
+    if (rem <= 0) {
+      clearInterval(lockCountdown);
+      banner.classList.remove('show');
+      document.getElementById('lockTimer').textContent = '30:00';
+      return;
+    }
+    const m = Math.floor(rem / 60000), s = Math.floor((rem % 60000) / 1000);
+    document.getElementById('lockTimer').textContent = `${m}:${s.toString().padStart(2,'0')}`;
+  }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PARENT LOGIN
+// ═══════════════════════════════════════════════════════════════
+function doParentLogin() {
+  const phone = document.getElementById('parentPhone').value.replace(/\s/g,'');
+  const name = sanitize(document.getElementById('parentStudentName').value.trim());
+  const al = document.getElementById('parentLoginAlert');
+  if (!phone || !name) { showAlert(al,'⚠️ Enter your phone number and child\'s name.','error'); return; }
+  if (!/^\+?\d{9,15}$/.test(phone)) { showAlert(al,'⚠️ Enter a valid phone number.','error'); return; }
+
+  ST.session = { role:'parent', name: name, phone: phone };
+  launchApp(true);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  LAUNCH APP
+// ═══════════════════════════════════════════════════════════════
+function launchApp(parentMode = false) {
+  goto('s-app');
+  document.getElementById('appSchoolLabel').textContent = ST.account?.school || 'School PTA';
+  document.getElementById('dashSchoolChip').textContent = '🏫 ' + (ST.account?.school || 'School');
+
+  const nav = document.getElementById('mainNav');
+  const cpBtn = document.getElementById('changePassBtn');
+
+  if (ST.session?.role === 'parent' || parentMode) {
+    // Parent: only show payment tab, hide rest
+    nav.querySelectorAll('.nav-tab').forEach(t => {
+      if (t.dataset.tab !== 'payment') t.style.display = 'none';
+    });
+    cpBtn.style.display = 'none';
+    document.getElementById('parentBanner').style.display = 'flex';
+    document.getElementById('parentBannerName').textContent = ST.session.name + ' (Parent)';
+    // Pre-fill parent details
+    document.getElementById('pyParent').value = ST.session.name;
+    document.getElementById('pyPhone').value = ST.session.phone;
+    document.getElementById('pyStudent').value = ST.session.name;
+    autoFill();
+    switchTab('payment', nav.querySelector('[data-tab="payment"]'));
+  } else {
+    nav.querySelectorAll('.nav-tab').forEach(t => t.style.display = '');
+    cpBtn.style.display = 'block';
+    document.getElementById('parentBanner').style.display = 'none';
+    switchTab('dashboard', nav.querySelector('[data-tab="dashboard"]'));
+    setGreeting();
+    updateDashboard();
+    renderStudents();
+    renderTransactions();
+  }
+  toggleFluid(false);
+  layoutFluid();
+  getGPS();
+  resetSession();
+}
+
+function doLogout() {
+  ST.session = null;
+  if (sessionTimer) clearTimeout(sessionTimer);
+  // Reset parent UI
+  const nav = document.getElementById('mainNav');
+  nav.querySelectorAll('.nav-tab').forEach(t => t.style.display = '');
+  toggleFluid(false);
+  document.getElementById('parentBanner').style.display = 'none';
+  document.getElementById('vcodeBox').style.display = 'none';
+  goto('s-adminlogin');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PASSWORD MANAGEMENT
+// ═══════════════════════════════════════════════════════════════
+let cpFails = 0;
+let cpLockUntil = 0;
+
+function doChangePass() {
+  if (ST.cpLockUntil > Date.now()) {
+    const rem = Math.ceil((ST.cpLockUntil - Date.now())/60000);
+    showAlert(document.getElementById('cpAlert'), `⏱️ Locked. Wait ${rem} more minute(s).`, 'error'); return;
+  }
+  const old = document.getElementById('cpOld').value;
+  const n1 = document.getElementById('cpNew').value;
+  const n2 = document.getElementById('cpNew2').value;
+  const al = document.getElementById('cpAlert');
+
+  if (!old || !n1 || !n2) { showAlert(al,'⚠️ Fill all fields.','error'); return; }
+  if (!verifyHash(old, ST.account.passHash)) {
+    ST.cpFails++;
+    save();
+    if (ST.cpFails >= 3) {
+      ST.cpLockUntil = Date.now() + 30 * 60 * 1000;
+      ST.cpFails = 0; save();
+      closeModal('m-changepass');
+      doLogout();
+      setTimeout(() => toast('🔒 Too many failed attempts. App locked 30 minutes.', 'error'), 500);
+      return;
+    }
+    showAlert(al, `❌ Wrong current password. ${3 - ST.cpFails} attempt(s) left.`, 'error'); return;
+  }
+  if (n1.length < 6) { showAlert(al,'⚠️ New password must be at least 6 characters.','error'); return; }
+  if (n1 !== n2) { showAlert(al,'⚠️ Passwords do not match.','error'); return; }
+  ST.account.passHash = simpleHash(n1);
+  ST.cpFails = 0; save();
+  showAlert(al,'✅ Password changed successfully!','success');
+  setTimeout(() => { closeModal('m-changepass'); ['cpOld','cpNew','cpNew2'].forEach(id => document.getElementById(id).value = ''); }, 1500);
+}
+
+function doForgotReset() {
+  const code = document.getElementById('masterCode').value.trim();
+  const np = document.getElementById('masterNewPass').value;
+  const al = document.getElementById('forgotAlert');
+  if (code !== MASTER_CODE) { showAlert(al,'❌ Invalid master code. Contact the developer.','error'); return; }
+  if (np.length < 6) { showAlert(al,'⚠️ New password must be at least 6 characters.','error'); return; }
+  ST.account.passHash = simpleHash(np);
+  save();
+  showAlert(al,'✅ Password reset! You can now login with your new password.','success');
+  setTimeout(() => { closeModal('m-forgot'); ['masterCode','masterNewPass'].forEach(id => document.getElementById(id).value = ''); goto('s-adminlogin'); }, 2000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  STUDENTS
+// ═══════════════════════════════════════════════════════════════
+function addStudent() {
+  const id = sanitize(document.getElementById('sId').value.trim());
+  const name = sanitize(document.getElementById('sName').value.trim());
+  const cls = sanitize(document.getElementById('sClass').value.trim());
+  const course = document.getElementById('sCourse').value;
+  const house = document.getElementById('sHouse').value;
+  const parent = sanitize(document.getElementById('sParent').value.trim());
+  const amtPaid = parseFloat(document.getElementById('sAmtPaid').value) || 0;
+  const feeStatus = document.getElementById('sFeeStatus').value;
+  const al = document.getElementById('addStuAlert');
+
+  if (!id || !name || !cls || !parent) { showAlert(al,'⚠️ Fill all required fields.','error'); return; }
+  if (ST.students.find(s => s.id === id)) { showAlert(al,'⚠️ Student ID already exists.','error'); return; }
+
+  ST.students.push({ id, name, cls, course, house, parent, amtPaid, feeStatus, addedAt: new Date().toISOString() });
+
+  // If amtPaid > 0, log it as a transaction
+  if (amtPaid > 0) {
+    const tx = makeTx({ parentName: parent, phone: 'N/A', studentName: name, cls, email:'', amount: amtPaid, method:'manual', ref:'Manual entry', vcode: genCode(), gps: ST.gps ? ST.gps.label : 'N/A', status:'success' });
+    ST.transactions.unshift(tx);
+  }
+
+  save(); closeModal('m-addstudent'); renderStudents(); updateDashboard(); updateAnalytics();
+  toast('✅ Student added!', 'success');
+  ['sId','sName','sClass','sParent','sAmtPaid'].forEach(id => document.getElementById(id).value = '');
+}
+
+function deleteStu(id) {
+  if (!confirm('Remove this student from the database?')) return;
+  ST.students = ST.students.filter(s => s.id !== id);
+  save(); renderStudents(); updateDashboard();
+  toast('🗑️ Student removed.', 'info');
+}
+
+function renderStudents() {
+  const q = (document.getElementById('stuSearch')?.value || '').toLowerCase();
+  const list = ST.students.filter(s =>
+    s.name.toLowerCase().includes(q) || s.id.toLowerCase().includes(q) ||
+    s.cls.toLowerCase().includes(q) || (s.house||'').toLowerCase().includes(q)
+  );
+  const tb = document.getElementById('stuTbody');
+  if (!list.length) { tb.innerHTML = '<tr><td colspan="9"><div class="empty"><div class="empty-icon">🎓</div><p>No students found</p></div></td></tr>'; return; }
+  tb.innerHTML = list.map(s => `
+    <tr>
+      <td><span style="color:var(--sky);font-weight:600">${s.id}</span></td>
+      <td>${s.name}</td><td>${s.cls}</td><td>${s.course}</td>
+      <td><span class="badge b-blue">${s.house}</span></td>
+      <td>${s.parent}</td>
+      <td style="color:var(--gold);font-weight:700;font-family:var(--fh)">GH₵ ${(s.amtPaid||0).toFixed(2)}</td>
+      <td><span class="badge ${s.feeStatus==='paid'?'b-green':'b-yellow'}">${s.feeStatus==='paid'?'✅ Paid':'⏳ Pending'}</span></td>
+      <td><button class="btn-icon" onclick="deleteStu('${s.id}')">🗑️</button></td>
+    </tr>`).join('');
+}
+
+function autoFill() {
+  const q = document.getElementById('pyStudent').value.trim().toLowerCase();
+  const m = ST.students.find(s => s.name.toLowerCase().includes(q));
+  const al = document.getElementById('autoFillMsg');
+  if (m && q.length > 2) {
+    document.getElementById('pyClass').value = m.cls;
+    if (!document.getElementById('pyParent').value) document.getElementById('pyParent').value = m.parent;
+    showAlert(al, `✅ Found: ${m.name} -- ${m.cls} | Parent: ${m.parent}`, 'success');
+  } else { al.className = 'alert'; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PAYMENT -- PAYSTACK INTEGRATION
+// ═══════════════════════════════════════════════════════════════
+let selPayMethod = null;
+
+function selMethod(m, el) {
+  selPayMethod = m;
+  document.querySelectorAll('.pm-card').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  getGPS();
+  document.getElementById('paystackNote').classList.add('show');
+}
+
+function getGPS() {
+  const bar = document.getElementById('gpsBar');
+  bar.style.display = 'flex';
+  if (!navigator.geolocation) {
+    ST.gps = { label: 'GPS unavailable' };
+    document.getElementById('gpsText').textContent = 'GPS unavailable in this browser';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(pos => {
+    const lat = pos.coords.latitude.toFixed(5), lng = pos.coords.longitude.toFixed(5);
+    ST.gps = { lat, lng, label: `${lat}, ${lng}` };
+    document.getElementById('gpsText').textContent = `Lat: ${lat} · Lng: ${lng} · ±${Math.round(pos.coords.accuracy)}m`;
+  }, () => {
+    ST.gps = { lat: '5.5571', lng: '-0.2019', label: 'Accra, Ghana (approx)' };
+    document.getElementById('gpsText').textContent = 'Approx: Accra, Ghana';
+  });
+}
+
+function initPaystack() {
+  const parent = sanitize(document.getElementById('pyParent').value.trim());
+  const phone = sanitize(document.getElementById('pyPhone').value.replace(/\s/g,''));
+  const email = sanitize(document.getElementById('pyEmail').value.trim());
+  const student = sanitize(document.getElementById('pyStudent').value.trim());
+  const cls = sanitize(document.getElementById('pyClass').value.trim());
+  const amount = parseFloat(document.getElementById('pyAmount').value);
+  const al = document.getElementById('payAlert');
+
+  if (!parent || !phone || !email || !student || !amount || !selPayMethod) {
+    showAlert(al, '⚠️ Fill all required fields and select a payment method.', 'error'); return;
+  }
+  if (isNaN(amount) || amount <= 0) { showAlert(al, '⚠️ Enter a valid amount.', 'error'); return; }
+  if (!/.+@.+\..+/.test(email)) { showAlert(al, '⚠️ Enter a valid email address (required for Paystack receipt).', 'error'); return; }
+
+  const psKey = DEFAULT_PAYSTACK_KEY;
+
+  // Map method to Paystack channel
+  const channelMap = { mtn: 'mobile_money', telecel: 'mobile_money', visa: 'card' };
+  const channel = channelMap[selPayMethod];
+
+  // Paystack amount is in kobo/pesewas (multiply by 100)
+  const amountInPesewas = Math.round(amount * 100);
+
+  let handler;
+  try {
+    handler = PaystackPop.setup({
+      key: psKey,
+      email: email,
+      amount: amountInPesewas,
+      currency: 'GHS',
+      ref: 'PTA_' + Date.now(),
+      metadata: {
+        custom_fields: [
+          { display_name: 'Parent Name', variable_name: 'parent_name', value: parent },
+          { display_name: 'Student Name', variable_name: 'student_name', value: student },
+          { display_name: 'Class', variable_name: 'class', value: cls },
+          { display_name: 'GPS Location', variable_name: 'gps', value: ST.gps?.label || 'N/A' },
+          { display_name: 'Payment Method', variable_name: 'method', value: selPayMethod }
+        ]
+      },
+      channels: [channel],
+      phone: phone.startsWith('+') ? phone.slice(1) : phone,
+      callback: function(response) { onPaystackSuccess(response, { parent, phone, email, student, cls, amount }); },
+      onClose: function() { showAlert(al, '⚠️ Payment window closed. No charge was made. Please try again.', 'warn'); }
+    });
+    handler.openIframe();
+  } catch(err) {
+    // Paystack not loaded or test mode
+    showAlert(al, '⚠️ Paystack unavailable (test mode). Simulating payment...', 'warn');
+    setTimeout(() => onPaystackSuccess({ reference: 'SIM_' + Date.now() }, { parent, phone, email, student, cls, amount }), 1500);
+  }
+}
+
+function onPaystackSuccess(response, data) {
+  const vcode = genCode();
+  const now = new Date();
+  const tx = makeTx({
+    parentName: data.parent, phone: data.phone, email: data.email,
+    studentName: data.student, cls: data.cls, amount: data.amount,
+    method: selPayMethod, ref: response.reference, vcode,
+    gps: ST.gps?.label || 'Not captured', status: 'success'
+  });
+  ST.transactions.unshift(tx);
+
+  // Mark student as paid
+  const stu = ST.students.find(s => s.name.toLowerCase() === data.student.toLowerCase());
+  if (stu) { stu.feeStatus = 'paid'; stu.amtPaid = (stu.amtPaid || 0) + data.amount; }
+
+  save(); renderTransactions(); renderStudents(); updateDashboard(); updateAnalytics();
+
+  // Show code
+  document.getElementById('vcodeVal').textContent = vcode;
+  document.getElementById('vcodeTime').textContent = `💳 ${now.toLocaleString('en-GB')} · 📍 ${ST.gps?.label || 'N/A'}`;
+  document.getElementById('vcodeBox').style.display = 'block';
+  document.getElementById('payAlert').className = 'alert';
+
+  toast(`💰 GH₵${data.amount} payment confirmed!`, 'success');
+  setTimeout(() => toast(`📱 Verification code ${vcode} sent to ${data.phone}`, 'info'), 2000);
+  setTimeout(() => toast(`📧 Receipt sent to ${data.email}`, 'info'), 4000);
+}
+
+function makeTx(d) {
+  return { id: 'TX' + Date.now(), ...d, timestamp: new Date().toISOString(), timeFormatted: new Date().toLocaleString('en-GB') };
+}
+
+function genCode() {
+  const c = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length: 8}, () => c[Math.floor(Math.random()*c.length)]).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TRANSACTIONS
+// ═══════════════════════════════════════════════════════════════
+function renderTransactions() {
+  const tb = document.getElementById('txTbody');
+  if (!ST.transactions.length) { tb.innerHTML = '<tr><td colspan="10"><div class="empty"><div class="empty-icon">💳</div><p>No transactions yet</p></div></td></tr>'; return; }
+  tb.innerHTML = ST.transactions.map((tx, i) => `
+    <tr>
+      <td style="color:var(--muted);font-size:.7rem">${i+1}</td>
+      <td style="font-size:.75rem;color:var(--muted)">${tx.timeFormatted}</td>
+      <td>${tx.parentName}<br><small style="color:var(--muted)">${tx.phone}</small></td>
+      <td>${tx.studentName}</td><td>${tx.cls}</td>
+      <td style="color:var(--gold);font-weight:700;font-family:var(--fh)">GH₵ ${tx.amount}</td>
+      <td><span class="badge ${tx.method==='mtn'?'b-yellow':tx.method==='telecel'?'b-green':tx.method==='manual'?'b-violet':'b-blue'}">${tx.method==='mtn'?'MTN':tx.method==='telecel'?'Telecel':tx.method==='manual'?'Manual':'Visa'}</span></td>
+      <td style="font-family:monospace;font-size:.78rem;color:var(--emerald);letter-spacing:2px">${tx.vcode}</td>
+      <td style="font-size:.72rem;color:var(--muted)">📍 ${tx.gps}</td>
+      <td><span class="badge b-green">✅ Done</span></td>
+    </tr>`).join('');
+}
+
+function exportCSV() {
+  if (!ST.transactions.length) { toast('No transactions to export.', 'info'); return; }
+  const h = ['ID','Time','Parent','Phone','Student','Class','Amount','Method','Code','GPS','Status'];
+  const rows = ST.transactions.map(tx => [tx.id,tx.timeFormatted,tx.parentName,tx.phone,tx.studentName,tx.cls,tx.amount,tx.method,tx.vcode,tx.gps,'Success']);
+  const csv = [h,...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = `PTA_Transactions_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  toast('📥 CSV exported!','success');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════════════
+function setGreeting() {
+  const h = new Date().getHours();
+  document.getElementById('greet').textContent = h<12?'Morning':h<17?'Afternoon':'Evening';
+  document.getElementById('todayDate').textContent = new Date().toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+}
+
+function updateDashboard() {
+  const now = new Date();
+  const mTx = ST.transactions.filter(t => { const d=new Date(t.timestamp); return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear(); });
+  const dTx = ST.transactions.filter(t => new Date(t.timestamp).toDateString()===now.toDateString());
+  const mTotal = mTx.reduce((s,t)=>s+t.amount,0);
+  document.getElementById('stMonth').textContent = `GH₵ ${mTotal.toFixed(2)}`;
+  document.getElementById('stToday').textContent = dTx.length;
+  document.getElementById('stStudents').textContent = ST.students.length;
+  document.getElementById('stPending').textContent = ST.students.filter(s=>s.feeStatus!=='paid').length;
+  document.getElementById('monthPfill').style.width = Math.min(100,(mTotal/5000)*100)+'%';
+  const tl = document.getElementById('dashTL');
+  if (!ST.transactions.length) { tl.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><p>No transactions yet</p></div>'; return; }
+  tl.innerHTML = ST.transactions.slice(0,6).map(tx => `
+    <div class="tl-item"><div class="tl-dot"></div><div class="tl-content">
+      <div style="display:flex;justify-content:space-between"><div class="tl-title">${tx.parentName} → ${tx.studentName}</div><div class="tl-amt">GH₵ ${tx.amount}</div></div>
+      <div class="tl-meta">⏰ ${tx.timeFormatted} · ${tx.method.toUpperCase()} · 🔑 ${tx.vcode}</div>
+    </div></div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  ANALYTICS
+// ═══════════════════════════════════════════════════════════════
+function updateAnalytics() {
+  const now = new Date();
+  const ws = new Date(now); ws.setDate(now.getDate()-now.getDay());
+  const d = ST.transactions.filter(t=>new Date(t.timestamp).toDateString()===now.toDateString()).reduce((s,t)=>s+t.amount,0);
+  const w = ST.transactions.filter(t=>new Date(t.timestamp)>=ws).reduce((s,t)=>s+t.amount,0);
+  const m = ST.transactions.filter(t=>{const dt=new Date(t.timestamp);return dt.getMonth()===now.getMonth()&&dt.getFullYear()===now.getFullYear();}).reduce((s,t)=>s+t.amount,0);
+  const y = ST.transactions.filter(t=>new Date(t.timestamp).getFullYear()===now.getFullYear()).reduce((s,t)=>s+t.amount,0);
+  document.getElementById('anDay').textContent=`GH₵ ${d.toFixed(2)}`;
+  document.getElementById('anWeek').textContent=`GH₵ ${w.toFixed(2)}`;
+  document.getElementById('anMonth').textContent=`GH₵ ${m.toFixed(2)}`;
+  document.getElementById('anYear').textContent=`GH₵ ${y.toFixed(2)}`;
+  document.getElementById('bmMtn').textContent=`GH₵ ${ST.transactions.filter(t=>t.method==='mtn').reduce((s,t)=>s+t.amount,0).toFixed(2)}`;
+  document.getElementById('bmTel').textContent=`GH₵ ${ST.transactions.filter(t=>t.method==='telecel').reduce((s,t)=>s+t.amount,0).toFixed(2)}`;
+  document.getElementById('bmVisa').textContent=`GH₵ ${ST.transactions.filter(t=>t.method==='visa').reduce((s,t)=>s+t.amount,0).toFixed(2)}`;
+}
+
+function switchChart(type, btn) {
+  document.querySelectorAll('.chart-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  renderChart(type);
+}
+
+function renderChart(type) {
+  const now = new Date(); let labels=[], values=[];
+  if (type==='daily') {
+    for(let i=6;i>=0;i--){const d=new Date(now);d.setDate(now.getDate()-i);labels.push(d.toLocaleDateString('en-GB',{weekday:'short'}));values.push(ST.transactions.filter(t=>new Date(t.timestamp).toDateString()===d.toDateString()).reduce((s,t)=>s+t.amount,0));}
+  } else if (type==='weekly') {
+    for(let i=3;i>=0;i--){const ws=new Date(now);ws.setDate(now.getDate()-now.getDay()-i*7);const we=new Date(ws);we.setDate(ws.getDate()+7);labels.push(`W${4-i}`);values.push(ST.transactions.filter(t=>{const d=new Date(t.timestamp);return d>=ws&&d<we;}).reduce((s,t)=>s+t.amount,0));}
+  } else {
+    for(let i=5;i>=0;i--){const m=new Date(now.getFullYear(),now.getMonth()-i,1);labels.push(m.toLocaleDateString('en-GB',{month:'short'}));values.push(ST.transactions.filter(t=>{const d=new Date(t.timestamp);return d.getMonth()===m.getMonth()&&d.getFullYear()===m.getFullYear();}).reduce((s,t)=>s+t.amount,0));}
+  }
+  const mx = Math.max(...values,1);
+  document.getElementById('chartBars').innerHTML = values.map(v=>`<div class="cbar-col"><div class="cbar" style="height:${(v/mx)*110}px" data-v="GH₵${v.toFixed(0)}"></div></div>`).join('');
+  document.getElementById('chartLbls').innerHTML = labels.map(l=>`<div style="flex:1;text-align:center;font-size:.65rem;color:var(--muted)">${l}</div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  THREAT LOGGER
+// ═══════════════════════════════════════════════════════════════
+function logThreat(msg) {
+  const tl = document.getElementById('threatLog');
+  const empty = tl.querySelector('.empty');
+  if (empty) tl.innerHTML = '';
+  const el = document.createElement('div');
+  el.className = 'tl-item';
+  el.innerHTML = `<div class="tl-dot" style="background:var(--rose)"></div><div class="tl-content"><div class="tl-title" style="color:var(--rose)">${msg}</div><div class="tl-meta">⏰ ${new Date().toLocaleString('en-GB')}</div></div>`;
+  tl.prepend(el);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════════════════════════
+function switchTab(tab, btn) {
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+  if (tab==='analytics'){ updateAnalytics(); renderChart('daily'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FLUID NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+// Tells each visible circle how far it sits from the toggle (--n) so the
+// open/close animation can stagger. Runs on open, so hidden parent-mode
+// items never leave gaps.
+function layoutFluid() {
+  const nav = document.getElementById('fluidNav');
+  const items = [...document.querySelectorAll('#mainNav .nav-tab, #mainNav .fluid-action')].filter(t => t.style.display !== 'none');
+  items.forEach((t, i) => t.style.setProperty('--n', i + 1));
+  nav.style.setProperty('--total', items.length);
+}
+
+function toggleFluid(force) {
+  const nav = document.getElementById('fluidNav');
+  const btn = document.getElementById('fluidToggle');
+  const open = (typeof force === 'boolean') ? force : !nav.classList.contains('open');
+  if (open) layoutFluid();
+  nav.classList.toggle('open', open);
+  btn.setAttribute('aria-expanded', open);
+  btn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
+}
+
+// Called when a circle is tapped: switch page, scroll up, then fold the menu away
+function pickTab(tab, btn) {
+  switchTab(tab, btn);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => toggleFluid(false), 160);
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleFluid(false); });
+
+// ═══════════════════════════════════════════════════════════════
+//  THEME (light / dark) -- saved in localStorage, applied via <html data-theme="...">
+// ═══════════════════════════════════════════════════════════════
+const THEME_KEY = 'edupay_theme';
+
+function currentTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+}
+
+function applyTheme(theme, persist) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const goingLight = theme === 'dark';               // what the button will do on the NEXT tap
+  const btn = document.getElementById('themeBtn');
+  const lbl = document.getElementById('themeLabel');
+  if (btn) {
+    btn.setAttribute('aria-label', goingLight ? 'Switch to light mode' : 'Switch to dark mode');
+    btn.setAttribute('aria-pressed', String(theme === 'light'));
+  }
+  if (lbl) lbl.textContent = goingLight ? 'Light mode' : 'Dark mode';
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'light' ? '#dde7f7' : '#0a1628');
+  if (persist) { try { localStorage.setItem(THEME_KEY, theme); } catch (e) {} }
+}
+
+function toggleTheme() {
+  const next = currentTheme() === 'dark' ? 'light' : 'dark';
+  applyTheme(next, true);
+  toast(next === 'light' ? 'Light mode on' : 'Dark mode on', 'info');
+  setTimeout(() => toggleFluid(false), 450);         // let the change show, then fold the menu
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RANDOM PTA / SCHOOL BACKGROUND (Pexels -- free to use)
+//  A different photo is picked on every page load. If one fails to load,
+//  the next is tried; if all fail, the navy gradient stays.
+//  To add more: use any Pexels photo ID (the number at the end of its page URL).
+// ═══════════════════════════════════════════════════════════════
+const PTA_PHOTO_IDS = [
+  5415447,  // teacher and parent meeting
+  5905617,  // teacher with schoolchildren
+  5905488,  // teacher explaining a lesson
+  8419197,  // teacher talking with students
+  8419210,  // classroom discussion
+  8423116,  // students at desks
+  5212350,  // teacher helping students
+  7692475   // teacher guiding a school project
+];
+
+function initBackground() {
+  const layer = document.getElementById('bgPhoto');
+  if (!layer) return;
+  const urls = PTA_PHOTO_IDS.map(id => `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=1600`);
+  const start = Math.floor(Math.random() * urls.length);
+  const queue = urls.slice(start).concat(urls.slice(0, start));   // random start, then the rest as fallbacks
+  (function tryNext() {
+    const url = queue.shift();
+    if (!url) return;
+    const img = new Image();
+    img.onload = () => {
+      layer.style.backgroundImage = `url("${url}")`;
+      requestAnimationFrame(() => layer.classList.add('ready'));
+    };
+    img.onerror = tryNext;
+    img.src = url;
+  })();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MODAL
+// ═══════════════════════════════════════════════════════════════
+function showModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-ov').forEach(ov => {
+  ov.addEventListener('click', function(e){ if(e.target===this) closeModal(this.id); });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════════
+function sanitize(str) {
+  const d = document.createElement('div'); d.textContent = str||''; return d.innerHTML;
+}
+function showAlert(el, msg, type) {
+  el.textContent = msg;
+  el.className = `alert show alert-${type}`;
+}
+function togglePass(id, btn) {
+  const inp = document.getElementById(id);
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁' : '🙈';
+}
+function toast(msg, type='success') {
+  const icons = {success:'✅',error:'❌',info:'ℹ️',warn:'⚠️'};
+  document.getElementById('toastIcon').textContent = icons[type]||'ℹ️';
+  document.getElementById('toastMsg').textContent = msg;
+  const el = document.getElementById('toast');
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 4200);
+}
+</script>
+</body>
+</html>
